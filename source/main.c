@@ -10,6 +10,8 @@ int main(int argc, char **argv) {
 	printf("A - Start alert fetching process");
 	printf("START - Quit the application");
 
+    
+
     while(aptMainLoop()) {
         gspWaitForVBlank();
         hidScanInput();
