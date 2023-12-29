@@ -1,29 +1,26 @@
 #include <3ds.h>
 #include <stdio.h>
 
-int main(int argc, char **argv)
-{
-	gfxInitDefault();
-	consoleInit(GFX_TOP, NULL);
+int main(int argc, char **argv) {
+    gfxInitDefault();
+    consoleInit(GFX_TOP, NULL);
 
-	printf("\x1b[9;20HWelcome to 3DS-EAS!");
-	printf("\x1b[30;16H\nA - Begin alert fetching process");
-    printf("\x1b[44;12H\nSTART - Quit the application");
+	printf("Welcome to 3DS-EAS!");
 
-	while (aptMainLoop())
-	{
-		hidScanInput();
-		u32 kDown = hidKeysDown();
+	printf("A - Start alert fetching process");
+	printf("START - Quit the application");
 
-		if (kDown & KEY_START) {
+    while(aptMainLoop()) {
+        gspWaitForVBlank();
+        hidScanInput();
+
+        if(hidKeysDown() & KEY_START)
             break;
-        } 
 
-		gfxFlushBuffers();
-		gfxSwapBuffers();
-		gspWaitForVBlank();
-	}
+        gfxFlushBuffers();
+        gfxSwapBuffers();
+    }
 
-	gfxExit();
-	return 0;
+    gfxExit();
+    return 0;
 }
