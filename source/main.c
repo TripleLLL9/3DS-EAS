@@ -11,6 +11,8 @@ int main(int argc, char **argv) {
 	printf("\n\nA - Start alert fetching process");
     printf("\nSTART - Quit the application");
 
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+
     while(aptMainLoop()) {   
         const char *state_codes[] = {"AL", "AK", "AS", "AR", "AZ", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VI", "VA", "WA", "WV", "WI", "WY", "MP", "PW", "FM", "MH"};
 
@@ -27,31 +29,39 @@ int main(int argc, char **argv) {
         hidScanInput();
 
         if(hidKeysDown() & KEY_START) {
+            curl_global_cleanup();
             curl_easy_cleanup(curl);
             break;
         }
 
         if(hidKeysDown() & KEY_A) {
-            bool isInList(const char *strstr) {
+            bool isInList(const char *mybuf) {
                 for (int i = 0; i < sizeof(state_codes) / sizeof(state_codes[0]); i++) {
-                    if (strcmp(strstr, state_codes[i]) == 0) {
+                    if (strcmp(mybuf, state_codes[i]) == 0) {
                         return true;
                     }
                 }
+
+                return false;
             }
 
             static SwkbdState swkbd;
+            bool didit = false;
+            static char mybuf[60];
+            SwkbdButton button = SWKBD_BUTTON_NONE;
 
-            swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 3, 2);
+            swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 3, -1);
+            swkbdSetInitialText(&swkbd, mybuf);
 			swkbdSetHintText(&swkbd, "Please enter a state's abbreviation.");
+            swkbdSetButton(&swkbd, SWKBD_BUTTON_MIDDLE, "Confirm", true);
 
-            if(strlen(strstr) > 2) {
+            if(strlen(mybuf) > 2) {
                 consoleClear();
                 printf("Please enter the state's ABBREVIATION, not the state name.");
                 sleep(3);
                 aptMainLoop();
             } else {
-                if(!isInList(strstr)) {
+                if(!isInList(mybuf)) {
                     consoleClear();
                     printf("Please enter a VALID state abbreviation.");
                     sleep(3);
@@ -60,7 +70,9 @@ int main(int argc, char **argv) {
                 curl = curl_easy_init();
 
                 if(curl) {
-                    const char *url = strcat("https://api.weather.gov/alerts/active?area=", strstr);
+                    char url[256];
+                    snprintf(url, sizeof(url), "https://api.weather.gov/alerts/active?area=%s", mybuf);
+
                     curl_easy_setopt(curl, CURLOPT_URL, url);
                     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 
@@ -74,6 +86,7 @@ int main(int argc, char **argv) {
                     }
 
                     curl_easy_cleanup(curl);
+                    curl_global_cleanup();
             }
         }
     }
