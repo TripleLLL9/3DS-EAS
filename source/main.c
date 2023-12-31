@@ -40,6 +40,8 @@ int main(int argc, char **argv) {
                 }
             }
 
+            static SwkbdState swkbd;
+
             swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 3, 2);
 			swkbdSetHintText(&swkbd, "Please enter a state's abbreviation.");
 
