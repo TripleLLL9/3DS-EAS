@@ -3,14 +3,47 @@
 #include <curl/curl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <malloc.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define SOC_ALIGN       0x1000
+#define SOC_BUFFERSIZE  0x100000
+
+static u32 *SOC_buffer = NULL;
+s32 sock = -1, csock = -1;
 
 int main(int argc, char **argv) {
+    int ret;
+
     gfxInitDefault();
     consoleInit(GFX_TOP, NULL);
 
 	printf("Welcome to 3DS-EAS!");
 	printf("\n\nA - Start alert fetching process");
     printf("\nSTART - Quit the application");
+
+    SOC_buffer = (u32*)memalign(SOC_ALIGN, SOC_BUFFERSIZE);
+
+	if(SOC_buffer == NULL) {
+		printf("memalign: failed to allocate\n");
+        sleep(3);
+        consoleClear();
+	}
+
+	if ((ret = socInit(SOC_buffer, SOC_BUFFERSIZE)) != 0) {
+    	printf("socInit: 0x%08X\n", (unsigned int)ret);
+        sleep(3);
+        consoleClear();
+	}
+
+	atexit(socExit());
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
@@ -42,7 +75,7 @@ int main(int argc, char **argv) {
                         return true;
                     }
                 }
-
+                
                 return false;
             }
 
@@ -57,13 +90,13 @@ int main(int argc, char **argv) {
             if(strlen(mybuf) > 2) {
                 consoleClear();
                 printf("Please enter the state's ABBREVIATION, not the state name.");
-                sleep(3);
+                // sleep(3);
                 aptMainLoop();
             } else {
                 if(!isInList(mybuf)) {
                     consoleClear();
                     printf("Please enter a VALID state abbreviation.");
-                    sleep(3);
+                    // sleep(3);
                     aptMainLoop();
             } else {              
                 // printf(system("curl -X GET https://api.weather.gov/alerts/active?state=CA -H 'User-Agent: curl'"));
@@ -74,7 +107,7 @@ int main(int argc, char **argv) {
 
                 curl = curl_easy_init();
                 if (curl) {
-                    const char *url = "https://api.weather.gov/alerts/active?area=CA"; // placeholder url for when i actually get curl working
+                    const char *url = "https://api.weather.gov"; // placeholder url for when i actually get curl working
 
                     curl_easy_setopt(curl, CURLOPT_URL, url);
                     curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
@@ -87,6 +120,7 @@ int main(int argc, char **argv) {
                     res = curl_easy_perform(curl);
 
                     if (res != CURLE_OK) {
+                        fprintf(stderr, "Curl error code: %d\n", res);
                         fprintf(stderr, "\nERROR: curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
                     }
 
