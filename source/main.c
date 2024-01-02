@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
                     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 
                     struct curl_slist *headers = NULL;
-                    headers = curl_slist_append(headers, "User-Agent: curl");
+                    headers = curl_slist_append(headers, "User-Agent: 3DS-EAS/1.0.0");
                     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
                     res = curl_easy_perform(curl);
