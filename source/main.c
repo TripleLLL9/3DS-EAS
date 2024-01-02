@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <curl/curl.h>
 #include <string.h>
+#include <stdlib.h>
 
 int main(int argc, char **argv) {
     gfxInitDefault();
@@ -46,14 +47,12 @@ int main(int argc, char **argv) {
             }
 
             static SwkbdState swkbd;
-            bool didit = false;
             static char mybuf[60];
-            SwkbdButton button = SWKBD_BUTTON_NONE;
-
             swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 3, -1);
             swkbdSetInitialText(&swkbd, mybuf);
-			swkbdSetHintText(&swkbd, "Please enter a state's abbreviation.");
-            swkbdSetButton(&swkbd, SWKBD_BUTTON_MIDDLE, "Confirm", true);
+            swkbdSetHintText(&swkbd, "Please enter a state's abbreviation.");
+
+            SwkbdButton button = swkbdInputText(&swkbd, mybuf, sizeof(mybuf));
 
             if(strlen(mybuf) > 2) {
                 consoleClear();
@@ -66,36 +65,44 @@ int main(int argc, char **argv) {
                     printf("Please enter a VALID state abbreviation.");
                     sleep(3);
                     aptMainLoop();
-            } else {
-                curl = curl_easy_init();
+            } else {              
+                // printf(system("curl -X GET https://api.weather.gov/alerts/active?state=CA -H 'User-Agent: curl'"));
+                consoleClear();
+                
+                CURL *curl;
+                CURLcode res;
 
-                if(curl) {
-                    char url[256];
-                    snprintf(url, sizeof(url), "https://api.weather.gov/alerts/active?area=%s", mybuf);
+                curl = curl_easy_init();
+                if (curl) {
+                    const char *url = "https://api.weather.gov/alerts/active?area=CA";
 
                     curl_easy_setopt(curl, CURLOPT_URL, url);
+                    curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
                     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+
+                    struct curl_slist *headers = NULL;
+                    headers = curl_slist_append(headers, "User-Agent: curl");
+                    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
                     res = curl_easy_perform(curl);
 
-                    if(res != CURLE_OK) {
-                        consoleClear();
-                        fprintf(stderr, "ERROR: Request failed: %s\n", curl_easy_strerror(res));
-                        sleep(3);
-                        aptMainLoop();
+                    if (res != CURLE_OK) {
+                        fprintf(stderr, "\nERROR: curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
                     }
 
+                    curl_slist_free_all(headers);
                     curl_easy_cleanup(curl);
-                    curl_global_cleanup();
+                }
             }
         }
-    }
-        }
 
-        gfxFlushBuffers();
-        gfxSwapBuffers();
+    gfxFlushBuffers();
+    gfxSwapBuffers();
+
     }
+}
 
     gfxExit();
     return 0;
+
 }
