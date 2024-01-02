@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 
                 curl = curl_easy_init();
                 if (curl) {
-                    const char *url = "https://api.weather.gov/alerts/active?area=CA";
+                    const char *url = "https://api.weather.gov/alerts/active?area=CA"; // placeholder url for when i actually get curl working
 
                     curl_easy_setopt(curl, CURLOPT_URL, url);
                     curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
