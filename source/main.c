@@ -30,7 +30,8 @@ bool isInList(const char *mybuf) {
 }
 
 int main(int argc, char **argv) {
-    int ret;
+    aptInit();
+    socInit((u32*)memalign(0x1000, 0x100000), 0x100000);
 
     gfxInitDefault();
     consoleInit(GFX_TOP, NULL);
@@ -115,6 +116,8 @@ int main(int argc, char **argv) {
 }
 
     gfxExit();
+    socExit();
+    aptExit();
     return 0;
 
 }
