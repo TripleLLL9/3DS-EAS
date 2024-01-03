@@ -3,15 +3,32 @@
 #include <curl/curl.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <malloc.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+
+#define state_count 59
+
+void keyboardInit() {
+    static SwkbdState swkbd;
+    static char mybuf[60];
+    swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 3, -1);
+    swkbdSetInitialText(&swkbd, mybuf);
+    swkbdSetHintText(&swkbd, "Please enter a state abbreviation.");
+    SwkbdButton button = swkbdInputText(&swkbd, mybuf, sizeof(mybuf));
+
+    if(strlen(mybuf) > 2) {
+        consoleClear();
+        printf("Please enter the state's ABBREVIATION, not the state name.");
+        // sleep(3);
+        aptMainLoop();
+    
+    if(!isInList(mybuf)) {
+        consoleClear();
+        printf("Please enter a VALID state abbreviation.");
+        // sleep(3);
+        aptMainLoop();
+}
+
+const char *state_codes[] = {"AL", "AK", "AS", "AR", "AZ", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VI", "VA", "WA", "WV", "WI", "WY", "MP", "PW", "FM", "MH"};
 
 size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
     size_t realsize = size * nmemb;
@@ -43,8 +60,6 @@ int main(int argc, char **argv) {
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
     while(aptMainLoop()) {   
-        const char *state_codes[] = {"AL", "AK", "AS", "AR", "AZ", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VI", "VA", "WA", "WV", "WI", "WY", "MP", "PW", "FM", "MH"};
-
         CURL *curl;
         CURLcode res;
 
@@ -58,53 +73,34 @@ int main(int argc, char **argv) {
         }
 
         if(hidKeysDown() & KEY_A) {
-            static SwkbdState swkbd;
-            static char mybuf[60];
-            swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 3, -1);
-            swkbdSetInitialText(&swkbd, mybuf);
-            swkbdSetHintText(&swkbd, "Please enter a state's abbreviation.");
-
-            SwkbdButton button = swkbdInputText(&swkbd, mybuf, sizeof(mybuf));
-
-            if(strlen(mybuf) > 2) {
-                consoleClear();
-                printf("Please enter the state's ABBREVIATION, not the state name.");
-                // sleep(3);
-                aptMainLoop();
-            } else {
-                if(!isInList(mybuf)) {
-                    consoleClear();
-                    printf("Please enter a VALID state abbreviation.");
-                    // sleep(3);
-                    aptMainLoop();
-            } else {              
-                // printf(system("curl -X GET https://api.weather.gov/alerts/active?state=CA -H 'User-Agent: curl'"));
-                consoleClear();
+            keyboardInit(); 
+            consoleClear();
                 
-                CURL *curl;
-                CURLcode res;
+            CURL *curl;
+            CURLcode res;
 
-                curl = curl_easy_init();
-                if (curl) {
-                    const char *url = "https://api.weather.gov"; // placeholder url for when i actually get curl working
+            curl = curl_easy_init();
 
-                    curl_easy_setopt(curl, CURLOPT_URL, url);
-                    curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
-                    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+            if (curl) {
+                const char *url = "https://api.weather.gov"; // placeholder url for when i actually get curl working
 
-                    struct curl_slist *headers = NULL;
-                    headers = curl_slist_append(headers, "User-Agent: 3DS-EAS/1.0.0");
-                    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+                curl_easy_setopt(curl, CURLOPT_URL, url);
+                curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 
-                    res = curl_easy_perform(curl);
+                struct curl_slist *headers = NULL;
+                headers = curl_slist_append(headers, "User-Agent: 3DS-EAS/1.0.0");
+                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
-                    if (res != CURLE_OK) {
-                        fprintf(stderr, "Curl error code: %d\n", res);
-                        fprintf(stderr, "\nERROR: curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-                    }
+                res = curl_easy_perform(curl);
 
-                    curl_slist_free_all(headers);
-                    curl_easy_cleanup(curl);
+                if (res != CURLE_OK) {
+                    fprintf(stderr, "Curl error code: %d\n", res);
+                    fprintf(stderr, "\nERROR: curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+                }
+
+                curl_slist_free_all(headers);
+                curl_easy_cleanup(curl);
                 }
             }
         }
