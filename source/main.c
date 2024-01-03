@@ -13,11 +13,21 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define SOC_ALIGN       0x1000
-#define SOC_BUFFERSIZE  0x100000
+size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
+    size_t realsize = size * nmemb;
+    printf("%.*s", (int)realsize, (char *)contents);
+    return realsize;
+}
 
-static u32 *SOC_buffer = NULL;
-s32 sock = -1, csock = -1;
+bool isInList(const char *mybuf) {
+    for (int i = 0; i < sizeof(state_codes) / sizeof(state_codes[0]); i++) {
+        if (strcmp(mybuf, state_codes[i]) == 0) {
+            return true;
+        }
+    }
+                
+    return false;
+}
 
 int main(int argc, char **argv) {
     int ret;
@@ -29,22 +39,6 @@ int main(int argc, char **argv) {
 	printf("\n\nA - Start alert fetching process");
     printf("\nSTART - Quit the application");
 
-    SOC_buffer = (u32*)memalign(SOC_ALIGN, SOC_BUFFERSIZE);
-
-	if(SOC_buffer == NULL) {
-		printf("memalign: failed to allocate\n");
-        sleep(3);
-        consoleClear();
-	}
-
-	if ((ret = socInit(SOC_buffer, SOC_BUFFERSIZE)) != 0) {
-    	printf("socInit: 0x%08X\n", (unsigned int)ret);
-        sleep(3);
-        consoleClear();
-	}
-
-	atexit(socExit());
-
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
     while(aptMainLoop()) {   
@@ -52,12 +46,6 @@ int main(int argc, char **argv) {
 
         CURL *curl;
         CURLcode res;
-
-        size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
-            size_t realsize = size * nmemb;
-            printf("%.*s", (int)realsize, (char *)contents);
-            return realsize;
-        }
 
         gspWaitForVBlank();
         hidScanInput();
@@ -69,16 +57,6 @@ int main(int argc, char **argv) {
         }
 
         if(hidKeysDown() & KEY_A) {
-            bool isInList(const char *mybuf) {
-                for (int i = 0; i < sizeof(state_codes) / sizeof(state_codes[0]); i++) {
-                    if (strcmp(mybuf, state_codes[i]) == 0) {
-                        return true;
-                    }
-                }
-                
-                return false;
-            }
-
             static SwkbdState swkbd;
             static char mybuf[60];
             swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 3, -1);
